@@ -1,6 +1,15 @@
+---
+title: 113.Power of Cryptography
+categories:
+- [数据结构与算法,uva]
+tags:
+- 算法
+- uva
+---
+
 # Power of Cryptography
 
-## 1. 题目
+## 题目
 
 Current work in cryptography involves (among other things) large prime numbers and computing powers of numbers modulo functions of these primes. Work in this area has resulted in the practical use of results from number theory and other branches of mathematics once considered to be of only theoretical interest.
 
@@ -30,11 +39,11 @@ For each integer pair n and p the value $\sqrt[n]{p}$ should be printed, i.e., t
 43
 1234
 
-### 1.1题意
+### 题意
 
 题意比较简单，给定两个数字n和p，找出数字k，使得$k^n=p$.
 
-## 2. 思路
+## 思路
 
 从题目出发，找出$k^n=p$。因p的范围比较大，已经超出了整数所能表示的范围，64位整型能表示$2^{64}$, 是小于$10^{101}$的，所以只能用字符串来表示p。
 
@@ -47,13 +56,13 @@ $$ m=\lfloor (b-1)/n \rfloor $$
 
 2. 采用二分法，k的位数介于m和m+1位之间，我们取$10^m$和$10^{m+1}-1$作为二分查找的上下界，取中间值c,并计算$c^k$的值并与p的大小相比较。根据比较结果调整上下界，逐步逼近到k。
 
-### 2.1问题
+### 问题
 
 整数的乘方在这里不适用，所以需要实现字符串的乘方运算。
 
 效率方面，字符串实现乘法和加法时，保留中间结果最开始采用StringBuilder的insert()方法, 通过比较发现，append()方法结合reverse()方法效率更高。
 
-## 3. 实现
+## 实现
 
 ```JAVA
 import java.util.Scanner;

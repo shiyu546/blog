@@ -1,6 +1,15 @@
+---
+title: 115.Climbing Trees
+categories:
+- [数据结构与算法,uva]
+tags:
+- 算法
+- uva
+---
+
 # Climbing Trees
 
-## 1. 题目
+## 题目
 
 Expression trees, B and B* trees, red-black trees, quad trees, PQ trees; trees play a significant role in many domains of computer science. Sometimes the name of a problem may indicate that trees are used when they are not, as in the Artificial Intelligence planning problem traditionally called the Monkey and Bananas problem. Sometimes trees may be used in a problem whose name gives no indication that trees are involved, as in the Huffman code.
 
@@ -84,11 +93,11 @@ great great grand child
 1 cousin removed 1
 no relation
 
-### 1.1题意
+### 题意
 
 题意是先给定多组人名对，每一对表示父子关系，然后给定多组人名对，判断每对的关系。题目共定义了四种关系：parent，child，cousin，sibling，每一种关系的具体定义见题目。
 
-## 2. 思路
+## 思路
 
 从关系出发，parent和child都是判断两个人名是否存在直接或间接的父子关系(父亲的父亲是儿子的grand parent), cousin是判断是否有共同祖先，从家族关系出发，有助于我们理清人物关系的是家谱，也就是家族树。
 
@@ -132,9 +141,9 @@ graph family{
 
 我们可以得到alonzo.church是les.valiant的great great grand parent, les.valiant是hartley.rogers的1-cousin removed 1。任何节点关系都可以从树中获取。
 
-### 2.1 问题
+### 问题
 
-#### 2.1.1 实现上的问题
+#### 实现上的问题
 
 1. 输入样例存在的一个问题是所有人名构成了一棵家族树，实际情况是人名之间可能没有任何关系，即'no relation'.这时当我们构造家族树时就会产生多颗树，每一棵树彼此没有关系，从实现的角度比较节点关系就变得很复杂，这时我们可以构造一个根节点，将所有的节点都纳入该树结构下，根的一级子节点表示彼此不相关的家族树。
 
@@ -205,9 +214,9 @@ graph pathb{
 }
 ```
 
-#### 2.1.2 性能上的问题
+#### 性能上的问题
 
-## 3. 实现
+## 实现
 
 ```JAVA
 import java.util.*;

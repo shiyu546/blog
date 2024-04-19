@@ -1,6 +1,15 @@
+---
+title: 114.Simulation Wizardry
+categories:
+- [数据结构与算法,uva]
+tags:
+- 算法
+- uva
+---
+
 # Simulation Wizardry
 
-## 1. 题目
+## 题目
 
 Simulation is an important application area in computer science involving the development of computer models to provide insight into real-world events. There are many kinds of simulation including (and certainly not limited to) discrete event simulation and clock-driven simulation. Simulation often involves approximating observed behavior in order to develop a practical approach.
 
@@ -46,7 +55,7 @@ There should be one line of output for each ball giving an integer number of poi
 2
 5
 
-### 1.1 题意
+### 题意
 
 题目比较长，主要是讲述了这样一个场景：在一个棋盘上，有一个小球，小球会朝指定方向移动，每次移动一个并消耗一点生命值，如果碰到棋盘边缘或者棋盘中的障碍物，则小球不移动并右转90°。碰撞墙壁或者障碍物会损失生命值(损失的可能为负数，即加生命值)，当小球生命值小于等于0时，球消失。小球碰到障碍物时，会获取障碍物的分数。题目给定了棋盘大小，障碍物的个数和位置，以及多个小球，需要输出每个小球获得的分数。
 
@@ -55,15 +64,15 @@ There should be one line of output for each ball giving an integer number of poi
 * 小球每动一下生命值都减1，只有减完1后生命值仍大于0，才能获取障碍物的分数。
 * 障碍物或墙可能有负的生命值，即小球碰撞后会加生命值，但前提条件是小球碰撞后(生命值减1)后仍然有正生命值。如果小球生命值为1，墙壁消耗-4，那么小球在碰撞墙壁后会消失。
 
-## 2. 思路
+## 思路
 
 按照规则即可，注意细节。
 
-### 2.1 问题
+### 问题
 
-#### 2.1.1 实现上的问题
+#### 实现上的问题
 
-#### 2.1.2 性能上的问题
+#### 性能上的问题
 
 本题的问题不在于算法和思路，而在于输入的处理。通过使用java中的scanner类，发现处理超时。通过搜索相关资料，了解到可以采用带缓冲区的输入来处理。通过使用BufferedReader缓存输入，达到加快处理输入的目的。BufferedReader使用框架如下：
 
@@ -82,7 +91,7 @@ static void init(InputStream input) {
 }
 ```
 
-## 3. 实现
+## 实现
 
 ```JAVA
 import java.util.*;

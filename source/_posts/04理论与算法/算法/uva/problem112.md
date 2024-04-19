@@ -1,6 +1,15 @@
+---
+title: 112.Tree Summing
+categories:
+- [数据结构与算法,uva]
+tags:
+- 算法
+- uva
+---
+
 # Tree Summing
 
-## 1. 题目
+## 题目
 
 LISP was one of the earliest high-level programming languages and, with FORTRAN, is one of the oldest languages currently being used. Lists, which are the fundamental data structures in LISP, can easily be adapted to represent other important data structures such as trees.
 
@@ -53,15 +62,15 @@ no
 yes
 no
 
-### 1.1 题意
+### 题意
 
 题意是给定用lisp语言的列表语法，用来表示二叉树这种数据结构，要求判断树是否有到叶子节点的路径节点和等于给定值。
 
-## 2. 思路
+## 思路
 
 一种方法是枚举所有的到叶子节点的路径，所以需要有某种方法遍历树的路径。在树的几种遍历方法中，当我们采用栈临时存储中间节点时，只需要遍历到叶子节点，判断当前栈内元素和，即可得到路径节点和。通过遍历树的节点，我们得到了所有的路径和，再和给定值比较，即可得到结果。
 
-### 2.1 问题
+### 问题
 
 * 第一个问题是输入的处理，给定一个比较值后，后面的输入就是树的列表表示，但输入不是分布在一行，而是有多行，所以需要有某种方法来判断列表是否输入完毕。
     >这里我们采用括号匹配法来解决这个问题，lisp列表的语法决定了其括号个数一定匹配。由于列表分布在多行，所以我们依次读取一行并判断'(' 和')'数量匹配是否相等，不匹配说明列表尚未读取完毕，接着读取；如果数量匹配相等则说明列表读物完毕.
@@ -71,7 +80,7 @@ no
 * 第二个问题是叶子节点的判定。
     >叶子节点有一个很特殊的性质就是接下来连续两个"()",所以在元素入栈时通过判断是否已经有连续两个"()"入栈，即可判断是否是叶子节点，进而获得当前路径上元素值的和。
 
-## 3. 实现
+## 实现
 
 代码实现由两部分组成:
 

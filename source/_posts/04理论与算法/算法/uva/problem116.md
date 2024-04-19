@@ -1,6 +1,15 @@
+---
+title: 116.Unidirectional TSP
+categories:
+- [数据结构与算法,uva]
+tags:
+- 算法
+- uva
+---
+
 # Unidirectional TSP
 
-## 1. 题目
+## 题目
 
 Problems that require minimum paths through some domain appear in many different areas of computer science. For example, one of the constraints in VLSI routing problems is minimizing wire length. The Traveling Salesperson Problem (TSP) — finding whether all the cities in a salesperson’s route can be visited exactly once with a specified limit on travel time — is one of the canonical examples of an NP-complete problem; solutions appear to require an inordinate amount of time to generate, but are simple to check.
 
@@ -59,11 +68,11 @@ Note: Lexicographically means the natural order on sequences induced by the orde
 1 1
 19
 
-### 1.1. 题意
+### 题意
 
 题意是给定一个矩阵，从最左边列往右按相邻的格子走，直至矩阵最后一列，找到一条路径的节点和最小，并且有多条路径和一样时，找到路径节点顺序最小的那条。注意矩阵是上下相通的，第一排可以走到最后一排，反之亦然。
 
-## 2. 思路
+## 思路
 
 碰到这个问题可以先讨论简化的情况：如果只有两列的情况，考虑左边节点A，判断A的最短路径只需考虑与A相邻的右边三个节点谁最小，如果有多个最小值相等，则需考虑这几个最小值的字典序，取最小值所在行最小的构成最短路径。对左边列的每一个节点都得到最短路径，然后比较左边列的路径和大小，就得到了矩阵的最短路径。
 | 3 | 4 |
@@ -114,13 +123,13 @@ digraph matrix{
 }
 ```
 
-### 2.1问题
+### 问题
 
-#### 2.1.1 实现上的问题
+#### 实现上的问题
 
-#### 2.1.2 性能上的问题
+#### 性能上的问题
 
-## 3. 实现
+## 实现
 
 ```JAVA
 import java.io.File;

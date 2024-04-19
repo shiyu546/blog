@@ -1,6 +1,15 @@
+---
+title: 111.History Grading
+categories:
+- [数据结构与算法,uva]
+tags:
+- 算法
+- uva
+---
+
 # History Grading
 
-## 1. 题目
+## 题目
 
 Many problems in Computer Science involve maximizing some measure according to constraints.
 
@@ -58,7 +67,7 @@ Warning: Read carefully the description and consider the difference between ’o
 10
 9
 
-## 2. 思路
+## 思路
 
 题目本质上就是求两个序列的最长公共子序列，很自然而然的想到dp(动态规划)，通过将子序列的最长公共序列记录下来，不断拓展序列直至序列本身。以正确序列4231和匹配序列3241为例，表格每一个数字表示所在行列子序列的最长公共子序列。
 
@@ -103,7 +112,7 @@ max(dp_{(i-1)j}, dp_{i(j-1)}) & row[i]!=col[j]
 | 1 | 0 | 1 | 1 |    2    |
 | 4 | 1 | 1 | 1 | **_2_** |
 
-### 2.1 问题
+### 问题
 
 题目比较坑的是输入，第一行给定的是序列元素个数，第二行是正确的序列，但序列不是按输入的顺序，而是按照输入的第i个元素在第几个位置来算的。以序列[3 1 2 4 9 5 10 6 8 7]为例，3表示第一个元素出现在第三个位置，1表示第二个元素出现在第一个位置，依此类推，所以输入序列要转换一下：
 
@@ -111,7 +120,7 @@ max(dp_{(i-1)j}, dp_{i(j-1)}) & row[i]!=col[j]
 |---|---|---|---|---|---|---|----|---|---|---|
 | 正确的序列 | 2 | 3 | 1 | 4 | 6 | 8 | 10 | 9 | 5 | 7 |
 
-## 3. 实现
+## 实现
 
 ```JAVA
 import java.io.File;

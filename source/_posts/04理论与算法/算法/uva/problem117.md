@@ -1,6 +1,15 @@
+---
+title: 117.The Postal Worker Rings Once
+categories:
+- [数据结构与算法,uva]
+tags:
+- 算法
+- uva
+---
+
 # The Postal Worker Rings Once
 
-## 1. 题目
+## 题目
 
 Graph algorithms form a very important part of computer science and have a lineage that goes back at least to Euler and the famous Seven Bridges of Königsberg problem. Many optimization problems involve determining efficient methods for reasoning about graphs.
 
@@ -52,11 +61,11 @@ deadend
 11
 114
 
-### 1.1题意
+### 题意
 
 题目给出了一连串的字符，每个字符的首尾是两个节点，字符长度是节点的边。要求出从某个点出发遍历图中每一条边并回到该点的最短路径。
 
-## 2. 思路
+## 思路
 
 初步看起来并没有什么什么头绪，但是结合题目给出的条件：图中节点度为奇数的个数最多为两个，结合欧拉路径和欧拉环路定理，可以做进一步分析：
 
@@ -75,13 +84,13 @@ deadend
 2. 当度为奇数的节点个数为2时，图满足欧拉路径，此时从一个奇数度节点a出发，遍历图一定到另一个奇数度节点b终止，此时已经遍历了图。但是按题目要求，起点和终点一定一样，所以我们还需要从b出发回到a节点。
     此时我们可以把求最短路径分为两部分：一部分是图的总边长度，第二部分是两个奇数度节点之间的最短距离，这部分最短距离可以用dijkstra算法求。
 
-### 2.1问题
+### 问题
 
-#### 2.1.1 实现上的问题
+#### 实现上的问题
 
-#### 2.1.2 性能上的问题
+#### 性能上的问题
 
-## 3. 实现
+## 实现
 
 ```JAVA
 import java.util.*;
