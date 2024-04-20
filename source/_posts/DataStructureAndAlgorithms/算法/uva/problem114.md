@@ -1,5 +1,6 @@
 ---
 title: 114.Simulation Wizardry
+date: 2023-10-7 21:19:42
 categories:
 - [数据结构与算法,uva]
 tags:
