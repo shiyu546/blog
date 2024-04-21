@@ -8,8 +8,6 @@ tags:
 - uva
 ---
 
-# The Postal Worker Rings Once
-
 ## 题目
 
 Graph algorithms form a very important part of computer science and have a lineage that goes back at least to Euler and the famous Seven Bridges of Königsberg problem. Many optimization problems involve determining efficient methods for reasoning about graphs.
