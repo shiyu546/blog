@@ -23,12 +23,13 @@ A stack is specified by giving the diameter of each pancake in the stack in the 
 For example, consider the three stacks of pancakes below (in which pancake 8 is the top-most pancake of the left stack):
 
 ```plaintext
-8           7           2
-4           6           5
-6           4           8
-7           8           4
-5           5           6
-2           2           7
+
+    8           7           2
+    4           6           5
+    6           4           8
+    7           8           4
+    5           5           6
+    2           2           7
 ------------>------------>
     flip(3)      flip(1)
 ```
@@ -63,6 +64,7 @@ For each stack of pancakes, the output should echo the original stack on one lin
 给定一个stack，栈里面元素大小不同，并且规定了栈只有一种操作：flip。flip操作是指定栈中某个位置的元素，从该元素到栈顶的所有元素做一次翻转。以上面例子为例，栈从顶至底的元素为：8，4，6，7，5，2。flip(i)指定的是栈中第i个元素，元素从栈底开始计算，栈底是第一个元素。例如flip(3)指定栈底往上第三个元素，这里是7，flip操作将8,4,6,7的栈顺序翻转过来，变成7,6,4,8。所以栈变为7,6,4,8,5,2。
 
 ```plaintext
+
 8  <--|          7        /|\ 栈顶，序号为6
 4     |翻转      6         |
 6     |          4         |
@@ -88,6 +90,7 @@ For each stack of pancakes, the output should echo the original stack on one lin
 5. 迭代，直至index到栈顶。
 
 ```plaintext
+
 8                            2                      7                4   
 4                            5                      5                6
 6                            7                      2                2 
