@@ -41,11 +41,11 @@ tags:
 
 表示selinux处于启用状态。
 
-2.临时关闭selinux:
+2. 临时关闭selinux:
 
 > $: setenforce 0
 
-3.永久关闭selinux:
+3. 永久关闭selinux:
 
 - 打开配置文件/etc/selinux/config,修改如下配置:
 
