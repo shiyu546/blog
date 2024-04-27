@@ -421,6 +421,7 @@ ngx_event_t *ngx_read_events, *ngx_write_events;
 ngx_select_init函数实现如下：
 
 ```c {.line-numbers}
+//file
   static fd_set master_read_fds;
   static fd_set master_write_fds;
   static fd_set work_read_fds;
@@ -456,6 +457,7 @@ ngx_select_init函数实现如下：
 - line19-20: event_queue是一个类型为ngx_event_t的全局变量，在nginx中，所有的事件都用ngx_event_t构体表示，同时ngx_event_t还是一个双向链表，含有指向前驱和后继的prev和next指针，这里将event_queue的驱和后继都初始化为指向自己，从而构成了一个环。同理也初始化了timer_queue链表。
 
   ```plaintext
+
   +------------+      +--------------+           
   |           \|/    \|/             |
   |   +-------------------------+    |
@@ -470,7 +472,7 @@ ngx_select_init函数实现如下：
 #### ngx_select_add_event函数
 
 ```c {.line-numbers}
-
+//file:
 int ngx_select_add_event(ngx_event_t *ev, int event, u_int flags)
 {
     fd_set *fds;
@@ -504,6 +506,7 @@ int ngx_select_add_event(ngx_event_t *ev, int event, u_int flags)
 - line17-20: 将初始化的fd下标事件插入到event_queue链表中，事件队列构成了一个环(ring)。
 
   ```plaintext
+  
                           +--------------+-------------------------------------+ 
                          \|/                                                   |
           +-------------------------+           +-------------------------+    |
