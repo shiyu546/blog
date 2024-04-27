@@ -95,7 +95,7 @@ nginx作为一个web服务器，最主要的功能就是作为网络服务server
 读和写都可以归类于Network I/O event，包括从客户端读取数据，向客户端写数据，接收新的连接请求等等。nginx抽象了一个ngx_event_t结构体表示事件。
 
 ```c {.line-numbers}
-
+//file: src/event/ngx_event.h
 typedef struct ngx_event_s       ngx_event_t;
 struct ngx_event_s {
     void            *data;
@@ -146,9 +146,9 @@ struct ngx_event_s {
 };
 ```
 
-- line3: data是一个void类型的指针，赋值时一般指向事件的连接信息。
-- line10-11: 节点包含有两个指向相同类型的指针，说明event结构可以构成一个链表。
-- line30-end: 这些都是一些标识表示事件的信息。
+- line4: data是一个void类型的指针，赋值时一般指向事件的连接信息。
+- line11-12: 节点包含有两个指向相同类型的指针，说明event结构可以构成一个链表。
+- line31-end: 这些都是一些标识表示事件的信息。
 
 ## 分析
 
@@ -157,7 +157,7 @@ struct ngx_event_s {
 再来看nginx的main函数，为了更聚焦整体逻辑，这里把部分平台相关的代码给屏蔽掉了。
 
 ```c {.line-numbers}
-
+//file: src/core/nginx.c
 int main(int argc, char *const *argv)
 {
     char addr_text[22];
@@ -188,7 +188,7 @@ struct sockaddr_in ngx_addr = {0, AF_INET, 0, 0, 0};
 ```
 
 - 结构
-  - line5: ngx_listen_t表示监听的socket配置信息，该结构体主要含有三个字段：表示socket描述符的fd，指向ngx_server_t结构体的指针，指向ngx_log_t结构体的指针。
+  - line6: ngx_listen_t表示监听的socket配置信息，该结构体主要含有三个字段：表示socket描述符的fd，指向ngx_server_t结构体的指针，指向ngx_log_t结构体的指针。
 
     ```c {.line-numbers}
 
@@ -205,7 +205,7 @@ struct sockaddr_in ngx_addr = {0, AF_INET, 0, 0, 0};
         } ngx_listen_t;
     ```
 
-  - line8: ngx_pool是一个ngx_pool_t类型的全局变量，主要是用来做内存管理。
+  - line9: ngx_pool是一个ngx_pool_t类型的全局变量，主要是用来做内存管理。
 
     ```c {.line-numbers}
 
@@ -219,30 +219,30 @@ struct sockaddr_in ngx_addr = {0, AF_INET, 0, 0, 0};
         };
     ```
 
-  - line9: ngx_addr是一个sockaddr_in类型的全局变量，该变量是tcp实现部分提供的结构体，用来当作socket函数的参数。
-  - 部分结构体的关系如下：
+  - line10: ngx_addr是一个sockaddr_in类型的全局变量，该变量是tcp实现部分提供的结构体，用来当作socket函数的参数。
+部分结构体的关系如下：
 
-    ```c {.line-numbers}
+```c {.line-numbers}
 
-        +------------+
-        |  int  fd   |
-        +------------+                           +------------+
-        |    log     |-------------------------->|            |
-        +------------+                           +------------+
-        |   server   |-------------+                 ngx_log_t
-        +------------+             |
-         ngx_listen_t              |                                                                                 
-                                   |                        +---------------+
-                                   +----------------------> | int log_level |
-                                                            +---------------+                 +--------------+
-                                                            |    pool       |---------------->|              |
-                                                            +---------------+                 +--------------+ 
-                                                            | func handler  |                     ngx_pool_t
-                                                            +---------------+
-                                                            |  buff_size    |
-                                                            +---------------+
-                                                              ngx_server_t
-    ```
+    +------------+
+    |  int  fd   |
+    +------------+                           +------------+
+    |    log     |-------------------------->|            |
+    +------------+                           +------------+
+    |   server   |-------------+                 ngx_log_t
+    +------------+             |
+     ngx_listen_t              |                                                                                 
+                               |                        +---------------+
+                               +----------------------> | int log_level |
+                                                        +---------------+                 +--------------+
+                                                        |    pool       |---------------->|              |
+                                                        +---------------+                 +--------------+ 
+                                                        | func handler  |                     ngx_pool_t
+                                                        +---------------+
+                                                        |  buff_size    |
+                                                        +---------------+
+                                                          ngx_server_t
+```
 
 - 流程
   - 整个main函数调用链路如下：
@@ -258,8 +258,8 @@ struct sockaddr_in ngx_addr = {0, AF_INET, 0, 0, 0};
           o--------->ngx_worker()
     ```
 
-  - line12: ngx_listen()函数主要完成启动tcp服务端程序的一系列操作：socket()->bind()->listen(),最终返回监听的套接字socket.
-  - line24: ngx_worker()函数主要事件处理，具体的tcp处理都发生在这里。
+  - line13: ngx_listen()函数主要完成启动tcp服务端程序的一系列操作：socket()->bind()->listen(),最终返回监听的套接字socket.
+  - line25: ngx_worker()函数主要事件处理，具体的tcp处理都发生在这里。
 
 ### ngx_listen函数
 
@@ -315,17 +315,22 @@ ngx_worker函数完成了剩余的事件处理工作，ngx_worker的函数调用
     ngx_worker()
         |
         |
-        o--------------->ngx_init_events()
+        o------------->ngx_init_events()
+        |
+        |    
+        o------------->ngx_add_event()
         |
         |
-        o--------------->ngx_add_event()
-        |
-        |
-        o--------------->ngx_process_events()
+        o------------->ngx_process_events()
+                                |
+                                |
+                                o-------------->event_handle()[ngx_event_accept]
+                                                     |
+                                                     |
+                                                     o----------->server->handler()[ngx_http_init_connection]
 ```
 
 ```c {.line-numbers}
-
 //file: src/event/ngx_event.c
 void ngx_worker(ngx_listen_t *sock, int n, ngx_pool_t *pool, ngx_log_t *log)
 {
@@ -381,7 +386,7 @@ ngx_connection_t *ngx_connections;
 ngx_event_t *ngx_read_events, *ngx_write_events;
 ```
 
-- line12: ngx_init_events是一个宏定义，替换之后是取全局变量ngx_event_init的一个元素，ngx_event_init是一个指针函数指针的数组，根据不同的IO多路复用类型调用不同的函数，以select复用技术为例，调用了src/event/modules/ngx_select_module.c中的ngx_select_init函数。
+- line13: ngx_init_events是一个宏定义，替换之后是取全局变量ngx_event_init的一个元素，ngx_event_init是一个指针函数指针的数组，根据不同的IO多路复用类型调用不同的函数，以select复用技术为例，调用了src/event/modules/ngx_select_module.c中的ngx_select_init函数。
 
   ```c {.line-numbers}
 
@@ -407,283 +412,268 @@ ngx_event_t *ngx_read_events, *ngx_write_events;
    #define ngx_init_events     (ngx_event_init[ngx_event_type])
   ```
 
-  ngx_select_init函数实现如下：
+- line16-38: ngx_read_events,ngx_write_events都是类型为ngx_event_t指针的全局变量，分配了max_connections大小的空间，所以我们可以把这两个变量看作数组类型，for循环中获取了监听配置中的监听socket描述符fd，并初始化了数组中fd下标的内容。
+- line42: ngx_add_event是一个宏定义，宏定义展开后调用了ngx_select_add_event函数，该函数将描述符加入到描述符集中并将事件加入事件队列。
+- line49: 和ngx_add_event一样也是宏定义，调用了ngx_select_process_events函数来处理事件。
 
-  ```c {.line-numbers}
+#### ngx_select_init函数
 
-    static fd_set master_read_fds;
-    static fd_set master_write_fds;
-    static fd_set work_read_fds;
-    static fd_set work_write_fds;
-    static ngx_event_t event_queue;
-    static ngx_event_t timer_queue;
-    void ngx_select_init(int max_connections, ngx_log_t *log)
-    {
+ngx_select_init函数实现如下：
 
-        if (max_connections >= FD_SETSIZE)
-            ngx_log_error(NGX_LOG_EMERG, log, 0,
-                          "ngx_select_init: maximum descriptor number"
-                          "supported by select() is %d",
-                          FD_SETSIZE - 1);
-    
-        FD_ZERO(&master_read_fds);
-        FD_ZERO(&master_write_fds);
-    
-        event_queue.prev = &event_queue;
-        event_queue.next = &event_queue;
-    
-        timer_queue.timer_prev = &timer_queue;
-        timer_queue.timer_next = &timer_queue;
-    
-        ngx_event_actions.add = ngx_select_add_event;
-        ngx_event_actions.del = ngx_select_del_event;
-        ngx_event_actions.process = ngx_select_process_events;
-    
-        max_fd = -1;
-    }
+```c {.line-numbers}
+  static fd_set master_read_fds;
+  static fd_set master_write_fds;
+  static fd_set work_read_fds;
+  static fd_set work_write_fds;
+  static ngx_event_t event_queue;
+  static ngx_event_t timer_queue;
+  void ngx_select_init(int max_connections, ngx_log_t *log)
+  {
+      if (max_connections >= FD_SETSIZE)
+          ngx_log_error(NGX_LOG_EMERG, log, 0,
+                        "ngx_select_init: maximum descriptor number"
+                        "supported by select() is %d",
+                        FD_SETSIZE - 1);
+  
+      FD_ZERO(&master_read_fds);
+      FD_ZERO(&master_write_fds);
+  
+      event_queue.prev = &event_queue;
+      event_queue.next = &event_queue;
+  
+      timer_queue.timer_prev = &timer_queue;
+      timer_queue.timer_next = &timer_queue;
+  
+      ngx_event_actions.add = ngx_select_add_event;
+      ngx_event_actions.del = ngx_select_del_event;
+      ngx_event_actions.process = ngx_select_process_events;
+  
+      max_fd = -1;
+  }
+```
+
+- line16-17: master_read_fds和master_write_fds是全局变量，这两行将初始化这两个全局描述符集。
+- line19-20: event_queue是一个类型为ngx_event_t的全局变量，在nginx中，所有的事件都用ngx_event_t构体表示，同时ngx_event_t还是一个双向链表，含有指向前驱和后继的prev和next指针，这里将event_queue的驱和后继都初始化为指向自己，从而构成了一个环。同理也初始化了timer_queue链表。
+
+  ```plaintext
+  +------------+      +--------------+           
+  |           \|/    \|/             |
+  |   +-------------------------+    |
+  +---| prev |          |  next |----+
+      +-------------------------+
+          event_queue
+      event_queue初始化      
   ```
 
-  - line16-17: master_read_fds和master_write_fds是全局变量，这两行将初始化这两个全局描述符集。
-  - line19-20: event_queue是一个类型为ngx_event_t的全局变量，在nginx中，所有的事件都用ngx_event_t结构体表示，同时ngx_event_t还是一个双向链表，含有指向前驱和后继的prev和next指针，这里将event_queue的前驱和后继都初始化为指向自己，从而构成了一个环。同理也初始化了timer_queue链表。
+- line25: ngx_event_actions是一个类型为ngx_event_actions_t的全局变量，该结构体含有几个函数指针，这里分别初始化指向了相应的函数。
 
-    ```plaintext
+#### ngx_select_add_event函数
 
-    +------------+      +--------------+           
-    |           \|/    \|/             |
-    |   +-------------------------+    |
-    +---| prev |          |  next |----+
-        +-------------------------+
-            event_queue
-        event_queue初始化      
-    ```
+```c {.line-numbers}
 
-  - line25: ngx_event_actions是一个类型为ngx_event_actions_t的全局变量，该结构体含有几个函数指针，这里分别初始化指向了相应的函数。
+int ngx_select_add_event(ngx_event_t *ev, int event, u_int flags)
+{
+    fd_set *fds;
+    ngx_connection_t *cn = (ngx_connection_t *)ev->data;
 
-- line15-37: ngx_read_events,ngx_write_events都是类型为ngx_event_t指针的全局变量，分配了max_connections大小的空间，所以我们可以把这两个变量看作数组类型，for循环中获取了监听配置中的监听socket描述符fd，并初始化了数组中fd下标的内容。
-- line42: ngx_add_event是一个宏定义，宏定义展开后调用了ngx_select_add_event函数:
-
-    ```c {.line-numbers}
-    
-    int ngx_select_add_event(ngx_event_t *ev, int event, u_int flags)
+    if (event == NGX_TIMER_EVENT)
     {
-        fd_set *fds;
-        ngx_connection_t *cn = (ngx_connection_t *)ev->data;
-    
-        if (event == NGX_TIMER_EVENT)
-        {
-            ngx_add_timer(ev, flags);
-            return 0;
-        }
-    
-        fds = ngx_select_get_fd_set(cn->fd, event, ev->log);
-        if (fds == NULL)
-            return -1;
-    
-        /**插入event_queue链表，插入位置在event_queue指向节点的下一个节点*/
-        ev->prev = &event_queue;
-        ev->next = event_queue.next;
-        event_queue.next->prev = ev;
-        event_queue.next = ev;
-    
-        FD_SET(cn->fd, fds);
-    
-        if (max_fd != -1 && max_fd < cn->fd)
-            max_fd = cn->fd;
+        ngx_add_timer(ev, flags);
         return 0;
     }
-    ```
 
-  - line12: 该函数根据事件类型获取相应的全局描述符集，这里ngx_worker中传的参数是NGX_READ_EVENT，所以这里返回的是全局读描述符集master_read_fds。
-  - line17-20: 将初始化的fd下标事件插入到event_queue链表中，事件队列构成了一个环(ring)。
+    fds = ngx_select_get_fd_set(cn->fd, event, ev->log);
+    if (fds == NULL)
+        return -1;
 
-    ```plaintext
+    /**插入event_queue链表，插入位置在event_queue指向节点的下一个节点*/
+    ev->prev = &event_queue;
+    ev->next = event_queue.next;
+    event_queue.next->prev = ev;
+    event_queue.next = ev;
 
-                            +--------------+-------------------------------------+ 
-                           \|/                                                   |
-            +-------------------------+           +-------------------------+    |
-            | prev |          |  next |<----------| prev |          |  next |----+
-            +-------------------------+           +-------------------------+
-                |                  |                             /|\
-                +-------------------------------------------------+
-                event_queue                                   ev
-        event_queue初始化     
-    ```
+    FD_SET(cn->fd, fds);
 
-  - line22: 将fd配置到描述符集中，这样该描述符集就可以通过判断fd的状态来确定是否有事件到达。
-- line49: 和ngx_add_event一样也是宏定义，调用了ngx_select_process_events函数：
+    if (max_fd != -1 && max_fd < cn->fd)
+        max_fd = cn->fd;
+    return 0;
+}
+```
 
-    ```c {.line-numbers}
+- line12: 该函数根据事件类型获取相应的全局描述符集，这里ngx_worker中传的参数是NGX_READ_EVENT，所这里返回的是全局读描述符集master_read_fds。
+- line17-20: 将初始化的fd下标事件插入到event_queue链表中，事件队列构成了一个环(ring)。
 
-    int ngx_select_process_events(ngx_log_t *log)
+  ```plaintext
+                          +--------------+-------------------------------------+ 
+                         \|/                                                   |
+          +-------------------------+           +-------------------------+    |
+          | prev |          |  next |<----------| prev |          |  next |----+
+          +-------------------------+           +-------------------------+
+              |                  |                             /|\
+              +-------------------------------------------------+
+              event_queue                                   ev
+      event_queue初始化     
+  ```
+
+- line22: 将fd配置到描述符集中，这样该描述符集就可以通过判断fd的状态来确定是否有事件到达。
+
+#### ngx_select_process_events事件处理函数
+
+```c {.line-numbers}
+//file: src/event/modules/ngx_select_module.c
+int ngx_select_process_events(ngx_log_t *log)
+{
+    int ready, found;
+    u_int timer, delta;
+    ngx_event_t *ev, *nx;
+    ngx_connection_t *cn;
+    struct timeval tv, *tp;
+    work_read_fds = master_read_fds;
+    work_write_fds = master_write_fds;
+    if (timer_queue.timer_next != &timer_queue)
     {
-        int ready, found;
-        u_int timer, delta;
-        ngx_event_t *ev, *nx;
-        ngx_connection_t *cn;
-        struct timeval tv, *tp;
-
-        work_read_fds = master_read_fds;
-        work_write_fds = master_write_fds;
-
-        if (timer_queue.timer_next != &timer_queue)
+        timer = timer_queue.timer_next->timer_delta;
+        tv.tv_sec = timer / 1000;
+        tv.tv_usec = (timer % 1000) * 1000;
+        tp = &tv;
+        delta = ngx_msec();
+    }
+    else
+    {
+        timer = 0;
+        tp = NULL;
+        delta = 0;
+    }
+    if ((ready = select(max_fd + 1, &work_read_fds, &work_write_fds, NULL, tp))== -1)
+    {
+        ngx_log_error(NGX_LOG_ALERT, log, ngx_socket_errno,
+                      "ngx_select_process_events: select failed");
+        return -1;
+    }
+    if (timer)
+    {
+        if (delta >= timer)
         {
-            timer = timer_queue.timer_next->timer_delta;
-            tv.tv_sec = timer / 1000;
-            tv.tv_usec = (timer % 1000) * 1000;
-            tp = &tv;
-
-            delta = ngx_msec();
+            for (ev = timer_queue.timer_next;
+                 ev != &timer_queue && delta >= ev->timer_delta;
+                 /* void */)
+            {
+                delta -= ev->timer_delta;
+                nx = ev->timer_next;
+                ngx_del_timer(ev);
+                if (ev->timer_handler(ev) == -1)
+                    ev->close_handler(ev);
+                ev = nx;
+            }
         }
         else
         {
-            timer = 0;
-            tp = NULL;
-            delta = 0;
+            timer_queue.timer_next->timer_delta -= delta;
         }
-
-        if ((ready = select(max_fd + 1, &work_read_fds, &work_write_fds, NULL, tp))== -1)
-        {
-            ngx_log_error(NGX_LOG_ALERT, log, ngx_socket_errno,
-                          "ngx_select_process_events: select failed");
-            return -1;
-        }
-
-        if (timer)
-        {
-            if (delta >= timer)
-            {
-                for (ev = timer_queue.timer_next;
-                     ev != &timer_queue && delta >= ev->timer_delta;
-                     /* void */)
-                {
-                    delta -= ev->timer_delta;
-                    nx = ev->timer_next;
-                    ngx_del_timer(ev);
-                    if (ev->timer_handler(ev) == -1)
-                        ev->close_handler(ev);
-                    ev = nx;
-                }
-            }
-            else
-            {
-                timer_queue.timer_next->timer_delta -= delta;
-            }
-        }
-
-        for (ev = event_queue.next; ev != &event_queue; ev = ev->next)
-        {
-            cn = (ngx_connection_t *)ev->data;
-            found = 0;
-
-            if (ev->write)
-            {
-                if (FD_ISSET(cn->fd, &work_write_fds))
-                {
-                    ngx_log_debug(log, "ngx_select_process_events: write %d" _
-                                           cn->fd);
-                    found = 1;
-                }
-            }
-            else
-            {
-                if (FD_ISSET(cn->fd, &work_read_fds))
-                {
-                    ngx_log_debug(log, "ngx_select_process_events: read %d" _
-                                           cn->fd);
-                    found = 1;
-                }
-            }
-
-            if (found)
-            {
-                ev->ready = 1;
-                if (ev->event_handler(ev) == -1)
-                    ev->close_handler(ev);
-
-                ready--;
-            }
-        }
-        return 0;
     }
-    ```
-
-  - line28: 调用select阻塞在事件监听上。
-  - line57-89: 循环遍历event_queue链表，判断事件对象上的socket fd是否有事件发生，如果有则调用事件对象的函数指针event_handler，处理事件。在ngx_worker中，监听的socket fd的event_handler指向了ngx_event_accept函数，所以当监听事件发生时，会调用ngx_event_accept方法。
-
-    ```c {.line-numbers}
-
-    int ngx_event_accept(ngx_event_t *ev)
+    for (ev = event_queue.next; ev != &event_queue; ev = ev->next)
     {
-        ngx_err_t           err;
-        ngx_socket_t        s;
-        struct sockaddr_in  addr;
-        int addrlen = sizeof(struct sockaddr_in);
-        ngx_connection_t *cn = (ngx_connection_t *) ev->data;
-
-        ev->ready = 0;
-    
-        do {
-            if ((s = accept(cn->fd, (struct sockaddr *) &addr, &addrlen)) == -1) {
-            }
-
-            ngx_memzero(&ngx_read_events[s], sizeof(ngx_event_t));
-            ngx_memzero(&ngx_write_events[s], sizeof(ngx_event_t));
-            ngx_memzero(&ngx_connections[s], sizeof(ngx_connection_t));
-
-            ngx_read_events[s].data = ngx_write_events[s].data
-                                                             = &ngx_connections[s];
-            ngx_connections[s].read = &ngx_read_events[s];
-            ngx_connections[s].write = &ngx_write_events[s];
-
-            ngx_connections[s].fd = s;
-            ngx_read_events[s].unexpected_eof = 1;
-            ngx_write_events[s].ready = 1;
-
-            ngx_write_events[s].timer = ngx_read_events[s].timer = 10000;
-
-            ngx_write_events[s].timer_handler =
-                ngx_read_events[s].timer_handler = ngx_event_close;
-
-            ngx_write_events[s].close_handler =
-                ngx_read_events[s].close_handler = ngx_event_close;
-
-            ngx_connections[s].server = cn->server;
-            ngx_connections[s].servers = cn->servers;
-            ngx_connections[s].log =
-                ngx_read_events[s].log = ngx_write_events[s].log = ev->log;
-
-        #if (HAVE_DEFERRED_ACCEPT)
-                if (ev->accept_filter)
-                    ngx_read_events[s].ready = 1;
-        #endif
-
-            cn->server->handler(&ngx_connections[s]);
-        } while (ev->available);
-    
-        return 0;
-    }
-    ```
-
-    - line12: 当监听socket有请求到来时，accept()返回连接socket fd。这里将连接fd放入events数组中。
-    - line46: 调用了ngx_server_t中的handler函数，在nginx.c中，server handler初始化为ngx_http_init_connection.该函数将连接socket fd加入到了event_queue队列中。
-
-      ```c {.line-numbers}
-
-        int ngx_http_init_connection(ngx_connection_t *c)
+        cn = (ngx_connection_t *)ev->data;
+        found = 0;
+        if (ev->write)
         {
-            ngx_event_t  *ev;
-        
-            ev = c->read;
-            ev->event_handler = NULL;
-            ev->log->action = "reading client request line";
-
-            /* XXX: ev->timer ? */
-            if (ngx_add_event(ev, NGX_TIMER_EVENT, ev->timer) == -1)
-                return -1;
-
-            return ngx_add_event(ev, NGX_READ_EVENT,/*视配置而定*/);
+            if (FD_ISSET(cn->fd, &work_write_fds))
+            {
+                ngx_log_debug(log, "ngx_select_process_events: write %d" _
+                                       cn->fd);
+                found = 1;
+            }
         }
-      ```
+        else
+        {
+            if (FD_ISSET(cn->fd, &work_read_fds))
+            {
+                ngx_log_debug(log, "ngx_select_process_events: read %d" _
+                                       cn->fd);
+                found = 1;
+            }
+        }
+        if (found)
+        {
+            ev->ready = 1;
+            if (ev->event_handler(ev) == -1)
+                ev->close_handler(ev);
+            ready--;
+        }
+    }
+    return 0;
+}
+```
+
+- line29: 调用select阻塞在事件监听上。
+- line58-90: 循环遍历event_queue链表，判断事件对象上的socket fd是否有事件发生，如果有则调用事件对象的函数指针event_handler，处理事件。在ngx_worker中，监听的socket fd的event_handler指向了ngx_event_accept函数，所以当监听事件发生时，会调用ngx_event_accept方法。
+
+##### ngx_event_accept函数
+
+```c {.line-numbers}
+//file: src/event/ngx_event_accept.c
+int ngx_event_accept(ngx_event_t *ev)
+{
+    ngx_err_t           err;
+    ngx_socket_t        s;
+    struct sockaddr_in  addr;
+    int addrlen = sizeof(struct sockaddr_in);
+    ngx_connection_t *cn = (ngx_connection_t *) ev->data;
+    ev->ready = 0;
+
+    do {
+        if ((s = accept(cn->fd, (struct sockaddr *) &addr, &addrlen)) == -1) {
+        }
+        ngx_memzero(&ngx_read_events[s], sizeof(ngx_event_t));
+        ngx_memzero(&ngx_write_events[s], sizeof(ngx_event_t));
+        ngx_memzero(&ngx_connections[s], sizeof(ngx_connection_t));
+        ngx_read_events[s].data = ngx_write_events[s].data
+                                                         = &ngx_connections[s];
+        ngx_connections[s].read = &ngx_read_events[s];
+        ngx_connections[s].write = &ngx_write_events[s];
+        ngx_connections[s].fd = s;
+        ngx_read_events[s].unexpected_eof = 1;
+        ngx_write_events[s].ready = 1;
+        ngx_write_events[s].timer = ngx_read_events[s].timer = 10000;
+        ngx_write_events[s].timer_handler =
+            ngx_read_events[s].timer_handler = ngx_event_close;
+        ngx_write_events[s].close_handler =
+            ngx_read_events[s].close_handler = ngx_event_close;
+        ngx_connections[s].server = cn->server;
+        ngx_connections[s].servers = cn->servers;
+        ngx_connections[s].log =
+            ngx_read_events[s].log = ngx_write_events[s].log = ev->log;
+    #if (HAVE_DEFERRED_ACCEPT)
+            if (ev->accept_filter)
+                ngx_read_events[s].ready = 1;
+    #endif
+        cn->server->handler(&ngx_connections[s]);
+    } while (ev->available);
+
+    return 0;
+}
+```
+
+- line13: 当监听socket有请求到来时，accept()返回连接socket fd。这里将连接fd放入events数组中。
+- line47: 调用了ngx_server_t中的handler函数，在nginx.c中，server handler初始化为ngx_http_init_connection.该函数将连接socket fd加入到了event_queue队列中。
+
+  ```c {.line-numbers}
+
+    int ngx_http_init_connection(ngx_connection_t *c)
+    {
+        ngx_event_t  *ev;
+    
+        ev = c->read;
+        ev->event_handler = NULL;
+        ev->log->action = "reading client request line";
+
+        /* XXX: ev->timer ? */
+        if (ngx_add_event(ev, NGX_TIMER_EVENT, ev->timer) == -1)
+            return -1;
+
+        return ngx_add_event(ev, NGX_READ_EVENT,/*视配置而定*/);
+    }
+  ```
 
 ### 总结
 
