@@ -533,34 +533,28 @@ int ngx_select_process_events(ngx_log_t *log)
     struct timeval tv, *tp;
     work_read_fds = master_read_fds;
     work_write_fds = master_write_fds;
-    if (timer_queue.timer_next != &timer_queue)
-    {
+    if (timer_queue.timer_next != &timer_queue) {
         timer = timer_queue.timer_next->timer_delta;
         tv.tv_sec = timer / 1000;
         tv.tv_usec = (timer % 1000) * 1000;
         tp = &tv;
         delta = ngx_msec();
-    }
-    else
-    {
+    } else {
         timer = 0;
         tp = NULL;
         delta = 0;
     }
-    if ((ready = select(max_fd + 1, &work_read_fds, &work_write_fds, NULL, tp))== -1)
-    {
+    if ((ready = select(max_fd + 1, &work_read_fds, &work_write_fds, NULL,
+                tp)) == -1) {
         ngx_log_error(NGX_LOG_ALERT, log, ngx_socket_errno,
-                      "ngx_select_process_events: select failed");
+                  "ngx_select_process_events: select failed");
         return -1;
     }
-    if (timer)
-    {
-        if (delta >= timer)
-        {
+    if (timer) {
+        if (delta >= timer) {
             for (ev = timer_queue.timer_next;
                  ev != &timer_queue && delta >= ev->timer_delta;
-                 /* void */)
-            {
+                 /* void */) {
                 delta -= ev->timer_delta;
                 nx = ev->timer_next;
                 ngx_del_timer(ev);
@@ -568,36 +562,29 @@ int ngx_select_process_events(ngx_log_t *log)
                     ev->close_handler(ev);
                 ev = nx;
             }
-        }
-        else
-        {
+        } else {
             timer_queue.timer_next->timer_delta -= delta;
         }
     }
-    for (ev = event_queue.next; ev != &event_queue; ev = ev->next)
-    {
+    for (ev = event_queue.next; ev != &event_queue; ev = ev->next) {
         cn = (ngx_connection_t *)ev->data;
         found = 0;
-        if (ev->write)
-        {
-            if (FD_ISSET(cn->fd, &work_write_fds))
-            {
-                ngx_log_debug(log, "ngx_select_process_events: write %d" _
-                                       cn->fd);
+        if (ev->write) {
+            if (FD_ISSET(cn->fd, &work_write_fds)) {
+                ngx_log_debug(
+                    log,
+                    "ngx_select_process_events: write %d", cn->fd);
+                found = 1;
+            }
+        } else {
+            if (FD_ISSET(cn->fd, &work_read_fds)) {
+                ngx_log_debug(
+                    log,
+                    "ngx_select_process_events: read %d",cn->fd);
                 found = 1;
             }
         }
-        else
-        {
-            if (FD_ISSET(cn->fd, &work_read_fds))
-            {
-                ngx_log_debug(log, "ngx_select_process_events: read %d" _
-                                       cn->fd);
-                found = 1;
-            }
-        }
-        if (found)
-        {
+        if (found) {
             ev->ready = 1;
             if (ev->event_handler(ev) == -1)
                 ev->close_handler(ev);
@@ -608,8 +595,8 @@ int ngx_select_process_events(ngx_log_t *log)
 }
 ```
 
-- line29: 调用select阻塞在事件监听上。
-- line58-90: 循环遍历event_queue链表，判断事件对象上的socket fd是否有事件发生，如果有则调用事件对象的函数指针event_handler，处理事件。在ngx_worker中，监听的socket fd的event_handler指向了ngx_event_accept函数，所以当监听事件发生时，会调用ngx_event_accept方法。
+- line22: 调用select阻塞在事件监听上。
+- line44-68: 循环遍历event_queue链表，判断事件对象上的socket fd是否有事件发生，如果有则调用事件对象的函数指针event_handler，处理事件。在ngx_worker中，监听的socket fd的event_handler指向了ngx_event_accept函数，所以当监听事件发生时，会调用ngx_event_accept方法。
 
 ##### ngx_event_accept函数
 
