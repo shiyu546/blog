@@ -690,3 +690,33 @@ nginx事件处理模块在TCP服务端程序处理框架下，将整个过程划
                                                  http_event module                                         accept module
                                                  (ngx_http_event.c)                                    (ngx_event_accept.c)
 ```
+
+在event module模块中，nginx定义了一个event对象ngx_event_t类型的数组ngx_x_events，数组上限由max_connections决定，默认使512。对于监听的socket、连接的soket，nginx按照
+``f(x)=x``哈希函数确定socket对应的事件在ngx_x_events数组中的位置，并初始化。例如监听的socket描述符fd=5,则该fd对应的事件对象初始化在ngx_x_events[5]。
+
+整个nginx请求处理采用事件驱动机制，处理都抽象成了事件对象，nginx维护了一个全局的事件循环链表event_queue，listen socket fd以事件对象投入到了event_queue中。每当该fd有事件发生时，通过accept生成了连接socket fd，并加入到event_queue中，nginx循环遍历event_queue，这样当连接fd有消息到达时，nginx就能通过读取该event获取消息。
+
+```plaintext
+
+    +--------------------+
+    |                    |
+   \|/    event_loop    /|\
+    |                    |
+    +--------------------+                                  event type
++--------------------------------------+   single event    +------------+    listen          +--------+    accept
+|         |        |        |          |------------------>|  listen    |  ----------------> |        | ----------------+
+|  event  |  event | ...    |  event   |                   |  socket fd |                    |        |      generate   |
+|------+------------------------+------|                   +------------+                    +--------+                 |
+| event|                        |event |                                                                                |
+|------|                        |------|                                                         event                  |
+|     .|      event_queue       |.     |                   add to event loop                 +------------+             |
+|     .|                        |.     |<----------------------------------------------------|  accept    |<------------+
+|     .|                        |.     |                                                     |  socket fd |   
+|      |                        |      |                                                     +------------+                  
+|------+------------------------+------|
+|  event  |                  | event   |
+|         |     ...          |         |
++--------------------------------------+
+
+监听socket event产生连接socket过程并加入到事件队列过程
+```
