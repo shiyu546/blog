@@ -1,5 +1,6 @@
 ---
-title: nginx历史版本结构分析
+title: nginx历史版本结构分析(一)
+subtitle: socket编程，事件处理机制
 date: 2024-04-27 11:42:11
 categories:
 - [组件,nginx,nginx历史版本]
@@ -665,7 +666,7 @@ int ngx_event_accept(ngx_event_t *ev)
     }
   ```
 
-### 总结
+## 总结
 
 nginx事件处理模块在TCP服务端程序处理框架下，将整个过程划入了不同的模块。包括event事件处理，IO复用技术相关的select模块，事件accept模块，http event模块等。
 
@@ -718,5 +719,5 @@ nginx事件处理模块在TCP服务端程序处理框架下，将整个过程划
 |         |     ...          |         |
 +--------------------------------------+
 
-监听socket event产生连接socket过程并加入到事件队列过程
+监听socket event产生连接socket并加入到事件队列过程
 ```
