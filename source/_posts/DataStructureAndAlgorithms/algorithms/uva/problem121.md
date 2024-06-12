@@ -1,6 +1,7 @@
 ---
 title: 121.Pipe Fitters
 date: 2024-06-12 21:12:42
+mathjax: true
 categories:
 - [数据结构与算法,uva]
 tags:
@@ -15,7 +16,8 @@ Filters, or programs that pass “processed” data through in some changed form
 This problem involves maximizing the number of pipes that can be fit into a storage container (but it’s a pipe fitting problem, not a bin packing problem).
 
 A company manufactures pipes of uniform diameter. All pipes are stored in rectangular storage containers, but the containers come in several different sizes. Pipes are stored in rows within a container so that there is no space between pipes in any row (there may be some space at the end of a row), i.e.,all pipes in a row are tangent, or touch. Within a rectangular cross-section, pipes are stored in either a grid pattern or a skew pattern as shown below: the two left-most cross-sections are in a grid pattern,the two right-most cross-sections are in a skew pattern.
-![alt](../images/121_pic1.png "两种摆放模式")
+{% asset_img 121_pic1.png 两种摆放模式 %}
+<!-- ![alt](../images/121_pic1.png "两种摆放模式") -->
 
 Note that although it may not be apparent from the diagram, there is no space between adjacent pipes in any row. The pipes in any row are tangent to (touch) the pipes in the row below (or rest on the bottom of the container). When pipes are packed into a container, there may be “left-over” space in which a pipe cannot be packed. Such left-over space is packed with padding so that the pipes cannot settle during shipping.
 
@@ -61,13 +63,16 @@ For each cross-section in the input, your program should print the maximum numbe
 
 1. 计算grid能摆放的圆的个数，圆是单位圆，所以长和宽a,b的向下取整表示了每一行能放置多少个圆和一共能够放置多少行，则$num=\lfloor a \rfloor \times \lfloor b \rfloor$.
 2. skew方式计算，先看这种方式下圆的摆放：
-![alt](../images/121_pic2.png "skew摆放模式下container能摆放的层数计算")
+{% asset_img 121_pic2.png skew摆放模式下container能摆放的层数计算 %}
+<!-- ![alt](../images/121_pic2.png "skew摆放模式下container能摆放的层数计算") -->
 由于每一排相邻的圆相切，下一排(从下往上第二排)与上一排(从下往上第一排)的圆也相切，所以AE=AC=CE,三角形ACE是等边三角形，且边长为1，CF垂直于AE，根据等边三角形高的计算公式，CF长度为$\frac{ \sqrt{3} }{2}$.所以摆放两排圆的高度为$H_2=0.5+0.5+Len(CF)$,其中Len(CF)=$\frac{ \sqrt{3} }{2}$.推广到摆放n排，则摆放高度为：
    $$ H_n = 0.5+0.5+n*Len(CF) $$
 由于摆放高度受限于长方形的边x,我们可以得到不等式：
-    $$ 0.5+0.5+n*Len(CF)<=x $$
-    => $$ n<=\frac{x-1}{Len(CF)} $$
-    => $$ n=\lfloor \frac{x-1}{Len(CF)} \rfloor $$
+$$ 0.5+0.5+n*Len(CF)<=x $$
+ =>
+$$ n<=\frac{x-1}{Len(CF)} $$
+ =>
+$$ n=\lfloor \frac{x-1}{Len(CF)} \rfloor $$
 边为x的情况下最多能摆n+1排圆。
 
 skew模式下摆放时，一排一排是交错摆放的，所以相邻的两派能摆放的数量可能不一致，通过上图也可以看出第二排是从0.5的位置开始摆放，通过起始位置和底长，很容易算出第二排能摆放多少个圆。

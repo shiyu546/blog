@@ -18,13 +18,15 @@ This problem deals with finding a minimal path through a grid of points while tr
 
 Given an m $\times$ n matrix of integers, you are to write a program that computes a pathof minimal weight. A path starts anywhere in column 1 (the first column) and consistsof a sequence of steps terminating in column n (the last column). A step consists of traveling from column i to column i + 1 in an adjacent (horizontal or diagonal) row. The first and last rows (rows 1 and m) of a matrix are considered adjacent, i.e., the matrix “wraps” so that it represents a horizontal cylinder. Legal steps are illustrated on the bleow.
 
-![alt](../images/116_pic1.png "允许的前进规则")
+<!-- ![alt](../images/116_pic1.png "允许的前进规则") -->
+{% asset_img 116_pic1.png 允许的前进规则 %}
 
 The weight of a path is the sum of the integers in each of the n cells of the matrix that are visited.
 
 For example, two slightly different 5 $\times$ 6 matrices are shown below (the only difference is the numbers in the bottom row).
 
-![alt](../images/116_pic2.png "example path")
+<!-- ![alt](../images/116_pic2.png "example path") -->
+{% asset_img 116_pic2.png example path %}
 
 The minimal path is illustrated for each matrix. Note that the path for the matrix on the right takes advantage of the adjacency property of the first and last rows.
 
