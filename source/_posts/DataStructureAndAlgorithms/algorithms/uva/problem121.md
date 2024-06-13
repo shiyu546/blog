@@ -12,7 +12,7 @@ description: "UVA 121"
 
 ## 题目
 
-Filters, or programs that pass "processed" data through in some changed form, are an important class of programs in the UNIX operating system. A pipe is an operating system concept that permits data to "flow"”" between processes (and allows filters to be chained together easily.)
+Filters, or programs that pass "processed" data through in some changed form, are an important class of programs in the UNIX operating system. A pipe is an operating system concept that permits data to "flow" between processes (and allows filters to be chained together easily.)
 
 This problem involves maximizing the number of pipes that can be fit into a storage container (but it’s a pipe fitting problem, not a bin packing problem).
 
@@ -76,7 +76,7 @@ $$ n<=\frac{x-1}{Len(CF)} $$
 $$ n=\lfloor \frac{x-1}{Len(CF)} \rfloor $$
 边为x的情况下最多能摆n+1排圆。
 
-skew模式下摆放时，一排一排是交错摆放的，所以相邻的两派能摆放的数量可能不一致，通过上图也可以看出第二排是从0.5的位置开始摆放，通过起始位置和底长，很容易算出第二排能摆放多少个圆。
+skew模式下摆放时，一排一排是交错摆放的，所以相邻的两排能摆放的数量可能不一致，通过上图也可以看出第二排是从0.5的位置开始摆放，通过起始位置和底长，很容易算出第二排能摆放多少个圆。
 
 ### 问题
 
