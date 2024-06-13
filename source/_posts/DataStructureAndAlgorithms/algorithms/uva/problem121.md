@@ -7,7 +7,7 @@ categories:
 tags:
 - 算法
 - uva
-desciption: "UVA 121"
+description: "UVA 121"
 ---
 
 ## 题目
