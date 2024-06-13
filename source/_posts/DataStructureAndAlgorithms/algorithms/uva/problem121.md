@@ -7,11 +7,12 @@ categories:
 tags:
 - 算法
 - uva
+desciption: "UVA 121"
 ---
 
 ## 题目
 
-Filters, or programs that pass “processed” data through in some changed form, are an important class of programs in the UNIX operating system. A pipe is an operating system concept that permits data to “flow” between processes (and allows filters to be chained together easily.)
+Filters, or programs that pass "processed" data through in some changed form, are an important class of programs in the UNIX operating system. A pipe is an operating system concept that permits data to "flow"”" between processes (and allows filters to be chained together easily.)
 
 This problem involves maximizing the number of pipes that can be fit into a storage container (but it’s a pipe fitting problem, not a bin packing problem).
 
