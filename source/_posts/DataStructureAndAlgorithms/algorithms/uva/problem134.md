@@ -1,7 +1,7 @@
 ---
 title: problem134 Loglan—A Logical Language
 date: 2024-10-01 10:04:10
-math|ax: true
+mathjax: true
 categories:
 - [数据结构与算法,uva]
 tags:
