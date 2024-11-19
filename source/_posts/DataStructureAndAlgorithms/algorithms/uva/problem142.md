@@ -7,7 +7,7 @@ categories:
 tags:
 - 算法
 - uva
-description: "UVA problem141.Mouse Clicks <br>
+description: "UVA problem142.Mouse Clicks <br>
 - 判断鼠标点击的点属于哪个区域或找出与点最近的图标"
 ---
 
