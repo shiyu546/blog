@@ -35,6 +35,8 @@ PEANUT BANANA VACUUM GREEDY
 
 ### SampleOutput
 
+```plaintext
+
  C
  H
  E
@@ -49,6 +51,7 @@ MATCHES   PICNIC
             S
 
 Unable to make two crosses
+```
 
 ### 题意
 
