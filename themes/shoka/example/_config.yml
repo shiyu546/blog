@@ -43,7 +43,7 @@ relative_link: false
 future: true
 highlight:
   enable: false # edit for Theme.shoka
-  line_number: true
+  line_number: false
   auto_detect: true
   tab_replace: ''
 prismjs:
