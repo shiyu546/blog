@@ -48,10 +48,34 @@ struct ngx_pool_s {
 >> *large* 则指向分配的大块内存，large本身也是一个链表结构。
 >> *large->alloc* 则是large大块内存指向的分配的内存地址。
 
+```plaintext
+               ngx_pool_t p --------------+
+                                         \|/
+----        ----                   +--------------+                         +-----------+              
+ /|\        /|\               +----|    last      |            linked_list  |           |          
+  |          |                |    +--------------+          +------------->|ngx_pool_t |                     
+  |          |             +-------|     end      |          |              |           |         
+  |          |             |  |    +--------------+          |              |           |         
+  |       ngx_pool_t       |  |    |    next      |----------+              +-----------+          
+  |          |             |  |    +--------------+                                   
+ size        |             |  |    |    large     |----------+                                     
+  |          |             |  |    +--------------+          |            +--------------+            
+  |         \|/            |  |    |     log      |          |            |              |              
+  |        ----            |  |    +--------------+          +----------->|              |        
+  |                        |  +--->|              |            large_list | large_block  | 
+  |                        |       |              |                       |              | 
+  |                        |       |              |                       |              |  
+  |                        |       |              |                       +--------------+   
+ \|/                       |       |              |                    
+ ----                      |       +--------------+               
+                           |------>                        
+
+ngx_pool_t结构
+```
+
 nginx内存分配的层次结构如下，从下至上分别是库函数层，库函数封装层，内存池结构初始化层以及内存分配函数层。
 
 ```plaintext
-
                                 +-----------------------------------+
                                 |   ngx_palloc()  ngx_pcalloc()     |
                            +------------------------------------------------+
@@ -250,144 +274,150 @@ nginx内存分配的层次结构如下，从下至上分别是库函数层，库
 > };
 > ```
 
+### 数据接收缓冲区ngx_buff_t
 
+`ngx_buff_t`是NGINX中用来管理HTTP请求的缓冲区，其结构体如下:
 
-
-
-结合内存分配函数ngx_create_pool来看，内存池ngx_pool_t p分配了一块大小为size的内存，p->last指向ngx_pool_t的末尾，p->end指向内存池的末尾。同时从next可以看出ngx_pool_t构成了内存池链表，large则指向大块内存。
-
-```plaintext
-
-
-               ngx_pool_t p --------------+
-                                         \|/
-----        ----                   +--------------+                         +-----------+              
- /|\        /|\               +----|    last      |            linked_list  |           |          
-  |          |                |    +--------------+          +------------->|ngx_pool_t |                     
-  |          |             +-------|     end      |          |              |           |         
-  |          |             |  |    +--------------+          |              |           |         
-  |       ngx_pool_t       |  |    |    next      |----------+              +-----------+          
-  |          |             |  |    +--------------+                                   
- size        |             |  |    |    large     |----------+                                     
-  |          |             |  |    +--------------+          |            +--------------+            
-  |         \|/            |  |    |     log      |          |            |              |              
-  |        ----            |  |    +--------------+          +----------->|              |        
-  |                        |  +--->|              |            large_list | large_block  | 
-  |                        |       |              |                       |              | 
-  |                        |       |              |                       |              |  
-  |                        |       |              |                       +--------------+   
- \|/                       |       |              |                    
- ----                      |       +--------------+               
-                           |------>                        
-
-ngx_pool_t结构
-```
+> ```c
+> typedef struct {
+>     char *buff;
+> ```
+>
+>> buff指向分配的内存。
+>
+> ```c
+>     char *pos;
+>     char *last;
+>     char *end;
+> } ngx_buff_t;
+> ```
+>
+>> pos指向缓冲区中已经读取的数据位置，last指向缓冲区中还有效的数据位置，end指向缓冲区的末尾位置。读取数据时，last指针前移，消费数据时，pos指针前移。
 
 ## 分析
 
 ### ngx_http_init_connection函数
 
-```c {.line-numbers}
-//file:src/http/ngx_http_event.c
-int ngx_http_init_connection(ngx_connection_t *c)
-{
-    ngx_event_t *ev;
-
-    ev = c->read;
-    ev->event_handler = ngx_http_init_request;
-    ev->log->action = "reading client request line";
-
-    ngx_log_debug(ev->log, "ngx_http_init_connection: entered");
-
-    /* XXX: ev->timer ? */
-    if (ngx_add_event(ev, NGX_TIMER_EVENT, ev->timer) == -1)
-        return -1;
-    /**...*/
-}
-```
-
-- line7: init_connection的主要作用是设置event对象的event_handler函数指针，该函数指针会在event有事件发生时在ngx_process_events函数中调用。
+在上一节中，`ngx_http_init_connection`函数设置了连接socket对应的事件的事件处理函数，并调用`ngx_add_event`函数将事件添加到事件队列中。其中事件处理函数设置为空，这一节设置成了`ngx_http_init_request`。
 
 ### ngx_http_init_request函数
 
-该函数主要完成一些数据结构的初始化，包括connection对象的pool，request对象的buffer等。
+该函数执行如下过程：
 
-```c {.line-numbers}
-//file:src/http/ngx_http_event.c
-int ngx_http_init_request(ngx_event_t *ev)
-{
-    ngx_connection_t *c = (ngx_connection_t *)ev->data;
-    ngx_http_request_t *r;
+1. 初始化一个`ngx_http_request_t`对象r；
+2. 分配r->buff->buff,并设置位置指针；
+3. 设置r的state_handler为ngx_process_http_request_line，即处理HTTP请求行；
+4. 变更事件的事件处理函数为ngx_http_process_request.
 
-    ngx_log_debug(ev->log, "ngx_http_init_request: entered");
+执行`ngx_http_init_request`函数之后，事件处理函数指向`ngx_http_process_request`,用于处理客户端发送的数据。
 
-    ngx_test_null(c->pool, ngx_create_pool(16384, ev->log), -1);
-    ngx_test_null(r, ngx_pcalloc(c->pool, sizeof(ngx_http_request_t)), -1);
-
-    c->data = r;
-    r->connection = c;
-
-    ngx_test_null(r->pool, ngx_create_pool(16384, ev->log), -1);
-    ngx_test_null(r->buff, ngx_palloc(r->pool, sizeof(ngx_buff_t)), -1);
-    ngx_test_null(r->buff->buff,
-                  ngx_pcalloc(r->pool, sizeof(c->server->buff_size)), -1);
-
-    r->buff->pos = r->buff->last = r->buff->buff;
-    r->buff->end = r->buff->buff + c->server->buff_size;
-
-    r->state_handler = ngx_process_http_request_line;
-
-    ev->event_handler = ngx_http_process_request;
-    ev->close_handler = ngx_http_close_request;
-    c->write->close_handler = ngx_http_close_request;
-    return ngx_http_process_request(ev);
-}
+```plaintext
+    客户端                             服务端
+    connection---------------> ngx_http_init_request
+                                        |               
+                                        |               
+                                       \|/              
+                                ngx_http_process_request
+                                           |
+                                           |
+    write--------------------------------->|                    
+                                           |
+                                          \|/
 ```
 
-ngx_http_request_t r中的r->buff和r->buff->buff都从ngx_pool_t分配的内存中获取内存块，同时初始化buff结构中的一些变量。
+> ```c
+> int ngx_http_init_request(ngx_event_t *ev)
+> {
+>     ngx_connection_t   *c = (ngx_connection_t *) ev->data;
+>     ngx_http_request_t *r;
+> 
+>     ngx_log_debug(ev->log, "ngx_http_init_request: entered");
+> 
+>     ngx_test_null(c->pool, ngx_create_pool(16384, ev->log), -1);
+>     ngx_test_null(r, ngx_pcalloc(c->pool, sizeof(ngx_http_request_t)), -1);
+> 
+>     c->data = r;
+>     r->connection = c;
+> ```
+>
+>> 初始化了http请求对象ngx_http_request_t，并利用connection属性保存连接对象。
+>
+> ```c
+>     ngx_test_null(r->pool, ngx_create_pool(16384, ev->log), -1);
+>     ngx_test_null(r->buff, ngx_palloc(r->pool, sizeof(ngx_buff_t)), -1);
+>     ngx_test_null(r->buff->buff,
+>                   ngx_pcalloc(r->pool, sizeof(c->server->buff_size)), -1);
+> 
+>     r->buff->pos = r->buff->last = r->buff->buff;
+>     r->buff->end = r->buff->buff + c->server->buff_size;
+> ```
+>
+>> r->buff是一个类型为`ngx_buff_t`指针的字段，这里分配了一段内存给buff。
+>
+> ```c
+>     r->state_handler = ngx_process_http_request_line;
+> 
+>     ev->event_handler = ngx_http_process_request;
+>     ev->close_handler = ngx_http_close_request;
+>     c->write->close_handler = ngx_http_close_request;
+>     return ngx_http_process_request(ev);
+> }
+> ```
+>
+>> 执行这里后，该事件的事件处理函数已经改变，为`ngx_http_process_request`。
 
-ngx_http_init_request方法中调用了ngx_http_process_request函数，该函数主要从socket连接中读取数据并保存到buff中。然后调用request的state_handler函数指针。由上面init函数可知state_handler指向了ngx_process_http_request_line函数，所以接下来调用了ngx_process_http_request_line函数。
+### ngx_http_process_request执行过程
 
-```c {.line-numbers}
-//file:src/http/ngx_http_event.c
-int ngx_http_process_request(ngx_event_t *ev)
-{
-    int n;
-    ngx_connection_t *c = (ngx_connection_t *)ev->data;
-    ngx_http_request_t *r = (ngx_http_request_t *)c->data;
+`ngx_http_process_request`主要过程为：
 
-    n = ngx_event_recv(ev, r->buff->last, r->buff->end - r->buff->last);
+1. 从socket读取数据并存入r->buff->buff中；
+2. 执行`state_handler`函数指针指向的函数。
 
-    if (!ev->read_discarded)
-    {
-        r->buff->last += n;
+> ```c
+> int ngx_http_process_request(ngx_event_t *ev)
+> {
+>     int n;
+>     ngx_connection_t *c = (ngx_connection_t *) ev->data;
+>     ngx_http_request_t *r = (ngx_http_request_t *) c->data;
+> 
+>     ngx_log_debug(ev->log, "http process request");
+> 
+>     n = ngx_event_recv(ev, r->buff->last, r->buff->end - r->buff->last);
+> ```
+>
+>> 调用`recv()`函数读取数据，将数据存入r->buff->buff中。
+>
+> ```c
+>     if (!ev->read_discarded) {
+>         r->buff->last += n;
+> 
+>         /* state_handlers are called in following order:
+>             ngx_process_http_request_line()
+>             ngx_process_http_request_header() */
+> 
+>         do {
+>             if ((r->state_handler)(r) < 0)
+>                 return -1;
+>         } while (r->buff->pos < r->buff->last);
+>     }
+> 
+>     return 0;
+> }
+> ```
+>
+>> 执行`r->state_handler`函数，从上面的初始化过程得知函数指针指向`ngx_process_http_request_line`.
 
-        /* state_handlers are called in following order:
-            ngx_process_http_request_line()
-            ngx_process_http_request_header() */
-        do
-        {
-            if ((r->state_handler)(r) < 0)
-                return -1;
-        } while (r->buff->pos < r->buff->last);
-    }
-    return 0;
-}
-```
+接下来`ngx_process_http_request_line`调用了`ngx_read_http_request_line`读取并解析缓冲区的数据，然后修改了*state_handler*的函数指针，指向了`ngx_process_http_request_header`。
 
-### ngx_process_http_request_line函数
-
-```c {.line-numbers}
-//file src/http/ngx_http_event.c
+```c
 static int ngx_process_http_request_line(ngx_http_request_t *r)
 {
     int n;
 
-    if  ((n = ngx_read_http_request_line(r)) == 1)
-    {
+    if ((n = ngx_read_http_request_line(r)) == 1) {
         *r->uri_end = '\0';
         ngx_log_debug(r->connection->log, "HTTP: %d, %d, %s" _
-                                              r->method _ r->http_version _ r->uri_start);
+                     r->method _ r->http_version _ r->uri_start);
         r->state_handler = ngx_process_http_request_header;
         r->connection->read->action = "reading client request headers";
     }
@@ -396,55 +426,104 @@ static int ngx_process_http_request_line(ngx_http_request_t *r)
 }
 ```
 
-- line6: 函数主要调用了ngx_read_http_request_line来处理数据。该方法使用状态模式来解析http请求头的数据，通过遍历接收到的数据提取http请求头并放入相应的request字段。
+#### ngx_read_http_request_line
 
-   ```c {.line-numbers}
-   int ngx_read_http_request_line(ngx_http_request_t *r)
-    {
-        char  ch;
-        char *buff = r->buff->buff;
-        char *p = r->buff->pos;
-        enum {
-            rl_start = 0,
-            rl_space_after_method,
-            rl_spaces_before_uri,
-            rl_after_slash_in_uri,
-            rl_check_uri,
-            rl_uri,
-            rl_http_09,
-            rl_http_version,
-            rl_first_major_digit,
-            rl_major_digit,
-            rl_first_minor_digit,
-            rl_minor_digit,
-            rl_almost_done,
-            rl_done
-        } state = r->state;
+处理客户端发送的数据发生在这里，`ngx_read_http_request_line`函数很长，主要是从缓冲区中读取数据，并按照http的协议解析数据。
 
-        while (p < r->buff->last && state < rl_done) {
-            ch = *p++;
+HTTP首先接收的数据是一串Request-Line,格式如下：
 
-            switch (state) {
+`` Request-Line = Method SP Request-URI SP HTTP-Version CRLF ``
 
-            /* HTTP methods: GET, HEAD, POST */
-            case rl_start:
-            /**... */
-                state = rl_space_after_method;
-                break;
-            }
-        }  
+* Method: 请求方法，GET、POST、HEAD、PUT、DELETE、OPTIONS、TRACE、CONNECT都是允许的方法，在该版本的http协议中，只包含GET、POST、HEAD三种。
+* SP : 空格，CRLF : 回车换行,这些都是控制字符。
+* Request-URI: 请求的资源，可以是一个URL，也可以是一个本地文件。
+* HTTP-Version: HTTP协议版本，HTTP协议由主版本和次要版本组成，例如HTTP/1.1。
 
-        if (state == rl_done) {
-            r->http_version = r->http_major * 1000 + r->http_minor;
-            r->state = rl_start;
-            return 1;
-        } else {
-            r->state = state;
-            return 0;
-        }   
-    }
-   ```
+> ```C
+> int ngx_read_http_request_line(ngx_http_request_t *r)
+> {
+>     char  ch;
+>     char *buff = r->buff->buff;
+>     char *p = r->buff->pos;
+>     enum {
+>         rl_start = 0,
+>         rl_space_after_method,
+>         rl_spaces_before_uri,
+>         rl_after_slash_in_uri,
+>         rl_check_uri,
+>         rl_uri,
+>         rl_http_09,
+>         rl_http_version,
+>         rl_first_major_digit,
+>         rl_major_digit,
+>         rl_first_minor_digit,
+>         rl_minor_digit,
+>         rl_almost_done,
+>         rl_done
+>     } state = r->state;
+> ```
+>
+>> state采用状态的模式，遍历缓冲区，并按照Request-Line的格式解析缓冲的内容。在下面的循环中，会根据state的值，逐步解析出method、uri、http_version等信息。
+>
+> ```c
+>     while (p < r->buff->last && state < rl_done) {
+>         ch = *p++;
+> 
+> /*
+> printf("\nstate: %d, pos: %x, end: %x, char: '%c' buf: %s",
+>        state, p, r->buff->last, ch, p);
+> */
+> 
+>         /* GCC complie it as jump table */
+> 
+>         switch (state) {
+> 
+>         /* HTTP methods: GET, HEAD, POST */
+>         case rl_start:
+>             switch (ch) {
+>             case 'G':
+>                 if (p + 1 >= r->buff->last)
+>                     return 0;
+> 
+>                 if (*p != 'E' || *(p + 1) != 'T')
+>                     return NGX_HTTP_INVALID_METHOD;
+> 
+>                 r->method = NGX_HTTP_GET;
+>                 p += 2;
+>                 break;
+> 
+>             case 'H':
+>                 if (p + 2 >= r->buff->last)
+>                     return 0;
+> 
+>                 if (*p != 'E' || *(p + 1) != 'A' || *(p + 2) != 'D')
+>                     return NGX_HTTP_INVALID_METHOD;
+> 
+>                 r->method = NGX_HTTP_HEAD;
+>                 p += 3;
+>                 break;
+> 
+>             case 'P':
+>                 if (p + 2 >= r->buff->last)
+>                     return 0;
+> 
+>                 if (*p != 'O' || *(p + 1) != 'S' || *(p + 2) != 'T')
+>                     return NGX_HTTP_INVALID_METHOD;
+> 
+>                 r->method = NGX_HTTP_POST;
+>                 p += 3;
+>                 break;
+> 
+>             default:
+>                 return NGX_HTTP_INVALID_METHOD;
+>             }
+> 
+>             state = rl_space_after_method;
+>             break;
+>             //...
+> }
+> ```
 
 ## 总结
 
-nginx http消息处理模块通过ngx_event_t的event_handler、state_handler等函数指针串联起来，在nginx_http_parse.c模块处理，处理内容包括http requeline，http header等。该处理逻辑基于http0.9的RFC文档RFC-1945中规定的http协议格式逐个处理。
+nginx http消息处理模块通过ngx_event_t的event_handler、state_handler等函数指针串联起来，在nginx_http_parse.c模块处理，处理内容包括http requeline，http header等。该处理逻辑基于http1.0的RFC文档RFC-1945中规定的http协议格式逐个处理。
